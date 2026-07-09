@@ -340,7 +340,7 @@
         <div><div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8a8272;">Banco</div><div style="font-family:'Cormorant Garamond',serif; font-size:17px; color:#21304F;">Guayaquil · Ahorros</div></div>
         <div><div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8a8272;"># de cuenta</div><div style="font-family:'Cormorant Garamond',serif; font-size:17px; color:#21304F;">0019093021</div></div>
         <div><div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8a8272;">C.I.</div><div style="font-family:'Cormorant Garamond',serif; font-size:17px; color:#21304F;">0931110456</div></div>
-        <div style="grid-column:1 / -1;"><div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8a8272;">Correo</div><div style="font-family:'Cormorant Garamond',serif; font-size:17px; color:#21304F; white-space:nowrap;">K_CARRIELC@HOTMAIL.COM</div></div>
+        <div style="grid-column:1 / -1;"><div style="font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8a8272;">Correo</div><div style="font-family:'Cormorant Garamond',serif; font-size:17px; color:#21304F; white-space:nowrap;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="22697d616370706b676e61626a6d766f636b6e0c616d6f">[email&#160;protected]</a></div></div>
       </div>
     </div>
   </section>
@@ -380,16 +380,29 @@
     <text x="50" y="30" text-anchor="middle" fill="#F6EFE3" font-family="Georgia, serif" font-style="italic" font-size="12">G&amp;P · R&amp;K</text>
   </svg>
 </template></x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900},&quot;totalSeats&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:7,&quot;min&quot;:1,&quot;max&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Lugares reservados&quot;},&quot;filledSeats&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:2,&quot;min&quot;:0,&quot;max&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Lugares reservados&quot;}}">
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900},&quot;totalSeats&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:7,&quot;min&quot;:1,&quot;max&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Lugares reservados&quot;},&quot;filledSeats&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:2,&quot;min&quot;:0,&quot;max&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Lugares reservados&quot;}}">
 class Component extends DCLogic {
   state = { days: '—', hours: '—', minutes: '—', seconds: '—', playing: false, opened: false, envGone: false };
   audioEl = React.createRef();
   userPaused = false;
+  primed = false;
+
+  // Empieza a bufferizar en silencio (los móviles permiten autoplay si está muteado)
+  primeAudio = () => {
+    const a = this.audioEl.current;
+    if (!a || this.primed) return;
+    this.primed = true;
+    a.muted = true;
+    const p = a.play();
+    if (p && p.then) p.catch(() => {});
+  };
 
   tryPlay = () => {
     const a = this.audioEl.current;
-    if (!a || this.userPaused || !a.paused) return;
+    if (!a || this.userPaused) return;
+    a.muted = false;
     a.volume = 1;
+    if (!a.paused) { this.setState({ playing: true }); return; }
     const p = a.play();
     if (p && p.then) p.then(() => this.setState({ playing: true })).catch(() => {});
   };
@@ -418,7 +431,9 @@ class Component extends DCLogic {
     this.target = new Date('2026-08-20T17:00:00').getTime();
     this.tick();
     this.timer = setInterval(() => this.tick(), 1000);
-    // Retry playing on the first taps anywhere (mobile autoplay unlock)
+    // Precarga en silencio para que suene al instante al abrir el sobre
+    this.primeAudio();
+    // Reintenta reproducir con el primer toque (desbloqueo de audio en móviles)
     this._retry = () => this.tryPlay();
     document.addEventListener('pointerdown', this._retry, { passive: true });
     document.addEventListener('touchstart', this._retry, { passive: true });
